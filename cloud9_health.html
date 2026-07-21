@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cortex — Governed Operations for St. Catherine's Health</title>
+<link rel="stylesheet" href="cloud9/styles.css" />
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap top-inner">
+    <div class="brand">
+      <div class="logo">C</div>
+      <div>
+        <h1>Cortex <span class="sep">·</span> <span class="tenant">St. Catherine's Health</span></h1>
+        <p>Governed operations copilot — human-in-the-loop, PHI-safe, fully audited</p>
+      </div>
+    </div>
+    <div class="top-right">
+      <a class="home-link" href="index.html">← Cortex home</a>
+      <div class="live"><span class="dot"></span> Demo tenant · no real PHI</div>
+    </div>
+  </div>
+</header>
+
+<section class="rolebar">
+  <div class="wrap rolebar-inner">
+    <div class="role-pick">
+      <label for="roleSelect">Signed in as</label>
+      <select id="roleSelect"></select>
+      <div class="role-id">
+        <b id="roleActor"></b>
+        <span id="roleTitle"></span>
+      </div>
+    </div>
+    <div class="role-detail">
+      <div id="roleNote" class="role-note"></div>
+      <div id="roleCaps" class="caps"></div>
+    </div>
+    <button id="resetDemo" class="btn ghost">Reset demo</button>
+  </div>
+</section>
+
+<nav class="wrap"><div id="tabs" class="tabs"></div></nav>
+
+<main class="wrap">
+
+  <!-- ------------------------------------------------------------ OPS QUEUE -->
+  <section class="panel" data-panel="queue">
+    <div class="panel-head">
+      <div>
+        <h2>Operations &amp; risk queue</h2>
+        <p class="lede">Every proposal carries its confidence, its impact, and its reasoning.
+          Nothing above LOW tier executes without a named human; nothing at HIGH tier executes
+          on a single signature.</p>
+      </div>
+    </div>
+    <div id="queueStats" class="stats"></div>
+    <div id="queueList" class="cards"></div>
+  </section>
+
+  <!-- ---------------------------------------------------------- PHI CONTROLS -->
+  <section class="panel" data-panel="phi">
+    <div class="panel-head">
+      <div>
+        <h2>PHI controls</h2>
+        <p class="lede">Redacted by default. Reveal is per-field, requires a reason code and a
+          written justification, expires after 60 seconds, and is written to the audit trail.</p>
+      </div>
+      <button id="previewToggle" class="btn">Show redaction preview</button>
+    </div>
+
+    <div id="phiRecords" class="cards"></div>
+
+    <div class="card">
+      <header class="card-head"><div><h3>Redactor — try it yourself</h3></div>
+        <span class="badge">live regex detectors</span></header>
+      <p class="muted small">Paste any text. The detectors run in your browser on every keystroke —
+        nothing here is pre-baked.</p>
+      <textarea id="scratchInput" rows="4" spellcheck="false"></textarea>
+      <div class="row">
+        <button id="scratchSample" class="btn tiny">Load sample</button>
+        <button id="scratchClear" class="btn tiny">Clear</button>
+      </div>
+      <div id="scratchOut" class="scratch"></div>
+    </div>
+
+    <div id="revealModal" class="modal" hidden>
+      <div class="modal-box">
+        <h3>Justify this reveal</h3>
+        <p class="muted small">Field: <b id="revealTarget"></b></p>
+        <label for="reasonCode">Reason code (HIPAA permitted purpose)</label>
+        <select id="reasonCode"></select>
+        <label for="justifyText">Written justification</label>
+        <textarea id="justifyText" rows="3" placeholder="Why do you need to see this identifier right now?"></textarea>
+        <div class="muted small" id="justifyCount">0 / 20 characters minimum</div>
+        <div class="stepup">Step-up authentication: enforced by your IdP (SAML/OIDC) at the session
+          boundary. This demo build gates on the justification; the production gate additionally
+          requires a fresh MFA claim.</div>
+        <div class="row end">
+          <button id="revealCancel" class="btn">Cancel</button>
+          <button id="revealConfirm" class="btn primary" disabled>Reveal for 60s</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ------------------------------------------------------------ AUDIT LOG -->
+  <section class="panel" data-panel="audit">
+    <div class="panel-head">
+      <div>
+        <h2>Audit log</h2>
+        <p class="lede">Append-only and hash-chained. Who, what, when, inputs, outputs, justification,
+          and lineage — for every human action and every model decision. Click a row to expand it.</p>
+      </div>
+    </div>
+
+    <div class="audit-controls">
+      <input id="auditQ" type="search" placeholder="Search actor, object, inputs, outputs…" />
+      <select id="auditActor"></select>
+      <select id="auditAction"></select>
+      <select id="auditTier">
+        <option value="">All tiers</option>
+        <option>LOW</option><option>MEDIUM</option><option>HIGH</option>
+        <option>PHI</option><option value="n/a">n/a</option>
+      </select>
+      <span id="auditCount" class="muted small"></span>
+      <span class="spacer"></span>
+      <button id="verifyChain" class="btn">Verify chain</button>
+      <button id="tamperSim" class="btn warn">Simulate tampering</button>
+      <button id="exportCSV" class="btn primary audit-export">Export CSV</button>
+      <button id="exportJSON" class="btn audit-export">Export JSON</button>
+    </div>
+
+    <div id="chainStatus" class="chain-status"></div>
+
+    <div class="table-scroll">
+      <table class="audit">
+        <thead><tr>
+          <th>#</th><th>Timestamp (UTC)</th><th>Actor</th><th>Action</th>
+          <th>Object</th><th>Tier</th><th>Hash</th>
+        </tr></thead>
+        <tbody id="auditBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ------------------------------------------------------------- FORECAST -->
+  <section class="panel" data-panel="forecast">
+    <div class="panel-head">
+      <div>
+        <h2>Demand forecast</h2>
+        <p class="lede">A disclosed moving average, not a black box. Accepting a forecast records it
+          as a model decision with its full input series.</p>
+      </div>
+      <div class="row">
+        <select id="deptSelect"></select>
+        <button id="acceptForecast" class="btn primary">Accept into planning</button>
+      </div>
+    </div>
+    <div id="forecastPanel" class="card"></div>
+  </section>
+
+  <!-- ------------------------------------------------------------- EVIDENCE -->
+  <section class="panel" data-panel="evidence">
+    <div class="panel-head">
+      <div>
+        <h2>Vendor risk evidence</h2>
+        <p class="lede">Each control opens to the artifact behind it. The permission matrix is read
+          live from the running application, and the evidence pack embeds the verified audit chain.</p>
+      </div>
+      <div class="row">
+        <button id="exportEvidence" class="btn primary">Export evidence pack</button>
+      </div>
+    </div>
+    <div id="evidenceNote" class="muted small"></div>
+    <div id="evidenceList" class="evidence"></div>
+  </section>
+
+</main>
+
+<div id="toast" class="toast"></div>
+
+<footer>
+  <div class="wrap foot">
+    <div>Cortex — Operational Intelligence, Governed. Demo environment, synthetic data only.</div>
+    <div>Built by team <span class="teamtag">Cloud9</span></div>
+  </div>
+</footer>
+
+<script src="cloud9/js/util.js"></script>
+<script src="cloud9/js/data.js"></script>
+<script src="cloud9/js/rbac.js"></script>
+<script src="cloud9/js/redact.js"></script>
+<script src="cloud9/js/audit.js"></script>
+<script src="cloud9/js/app.js"></script>
+<script src="cloud9/js/queue.js"></script>
+<script src="cloud9/js/phi.js"></script>
+<script src="cloud9/js/auditview.js"></script>
+<script src="cloud9/js/forecast.js"></script>
+<script src="cloud9/js/evidence.js"></script>
+<script>
+  CORTEX.queue.init();
+  CORTEX.phi.init();
+  CORTEX.auditview.init();
+  CORTEX.forecast.init();
+  CORTEX.evidence.init();
+  CORTEX.app.boot();
+</script>
+</body>
+</html>
