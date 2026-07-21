@@ -134,7 +134,10 @@
         <p>Watches your operations · automates busywork · forecasts demand · protects sensitive data · audit-ready</p>
       </div>
     </div>
-    <div class="live"><span class="dot"></span> LIVE demo · every action is logged</div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <a href="security.html" style="color:var(--ink);text-decoration:none;font-size:12.5px;border:1px solid var(--line);padding:7px 12px;border-radius:999px;background:var(--panel2)">🔒 Security &amp; HIPAA</a>
+      <div class="live"><span class="dot"></span> LIVE demo · every action is logged</div>
+    </div>
   </header>
 
   <!-- 3D INTERACTIVE HERO (Cortex neural core) -->
@@ -223,7 +226,8 @@ LATAM,980000,410000,300000,15,4</textarea>
   <section id="redact" class="hide">
     <div class="panel">
       <h2>Sensitive-data protection</h2>
-      <p class="sub">Cortex scans free text before it's stored, shared, or sent to any model, and masks regulated identifiers. It records <em>that</em> redaction happened — never the raw value.</p>
+      <p class="sub">Cortex scans free text before it's stored, shared, or sent to any model, and masks regulated identifiers. It records <em>that</em> redaction happened — never the raw value. Only the identifier is replaced; surrounding context is preserved.</p>
+      <p class="sub">PHI is encrypted in transit (TLS 1.3) and at rest (AES-256-GCM, per-tenant keys), and Cortex operates as a HIPAA Business Associate under a signed BAA. Customer data is never used to train models. <a href="security.html">Read the full security, HIPAA &amp; BAA details →</a></p>
       <div class="row">
         <div class="col">
           <label for="rdata">Paste text (customer note, ticket, export)</label>
@@ -299,6 +303,7 @@ Wire ref IBAN GB29 NWBK 6016 1331 9268 19 pending review.</textarea>
 <footer>
   <div class="wrap">
     <div>Cortex — Operational Intelligence, Governed. Demo environment.</div>
+    <div><a href="security.html">Security &amp; HIPAA</a> · <a href="privacy/">Privacy</a> · <a href="trust/">Trust Center</a> · <a href="cloud9_health.html">Healthcare demo</a></div>
     <div>Built by team <span class="teamtag">Cloud9</span></div>
   </div>
 </footer>
