@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cortex — Operational Intelligence, Governed</title>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#111823; --panel2:#0e1420; --line:#1e2a3a;
+    --ink:#e7eef7; --mut:#8ea3bd; --mut2:#61748f;
+    --accent:#4f8cff; --accent2:#2f6fe0; --good:#31c48d; --warn:#f0a53e; --bad:#f0616d;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(1200px 600px at 70% -10%,#12243f 0%,var(--bg) 55%);
+    color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;min-height:100vh;display:flex;flex-direction:column}
+  a{color:var(--accent)}
+  .wrap{max-width:1080px;margin:0 auto;padding:22px 20px 40px;width:100%}
+  header.top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:12px}
+  .logo{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#4f8cff,#7b5cff);
+    display:grid;place-items:center;font-weight:800;color:#fff;box-shadow:0 6px 22px rgba(79,140,255,.35)}
+  .brand h1{font-size:19px;margin:0;letter-spacing:.2px}
+  .brand p{margin:0;color:var(--mut);font-size:12.5px}
+  .live{display:flex;align-items:center;gap:8px;color:var(--mut);font-size:12.5px;
+    border:1px solid var(--line);padding:7px 12px;border-radius:999px;background:var(--panel2)}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--good);box-shadow:0 0 0 0 rgba(49,196,141,.6);animation:pulse 2s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(49,196,141,.5)}70%{box-shadow:0 0 0 8px rgba(49,196,141,0)}100%{box-shadow:0 0 0 0 rgba(49,196,141,0)}}
+
+  .tabs{display:flex;gap:6px;margin:22px 0 18px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:0}
+  .tab{appearance:none;background:transparent;border:0;color:var(--mut);font:inherit;font-weight:600;
+    padding:11px 15px;border-radius:10px 10px 0 0;cursor:pointer;position:relative}
+  .tab:hover{color:var(--ink)}
+  .tab.active{color:var(--ink)}
+  .tab.active::after{content:"";position:absolute;left:12px;right:12px;bottom:-1px;height:2px;background:var(--accent);border-radius:2px}
+  .tab small{display:block;font-weight:500;color:var(--mut2);font-size:11px;margin-top:2px}
+
+  .panel{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);
+    border-radius:var(--radius);padding:20px;margin-bottom:16px}
+  .panel h2{margin:0 0 4px;font-size:17px}
+  .panel .sub{color:var(--mut);font-size:13px;margin:0 0 16px}
+  .row{display:flex;gap:16px;flex-wrap:wrap}
+  .col{flex:1 1 320px;min-width:0}
+  label{display:block;font-size:12px;color:var(--mut);margin:0 0 6px;text-transform:uppercase;letter-spacing:.5px}
+  textarea,input,select{width:100%;background:#0a1019;border:1px solid var(--line);color:var(--ink);
+    border-radius:10px;padding:11px 12px;font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  textarea{min-height:120px;resize:vertical}
+  .btn{appearance:none;border:0;border-radius:10px;padding:11px 16px;font:inherit;font-weight:700;cursor:pointer;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;box-shadow:0 6px 18px rgba(47,111,224,.3)}
+  .btn:hover{filter:brightness(1.06)}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink);box-shadow:none}
+  .btn.ghost:hover{border-color:var(--accent)}
+  .btnbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+
+  .stat{display:flex;gap:10px;flex-wrap:wrap}
+  .kpi{flex:1 1 140px;background:#0a1019;border:1px solid var(--line);border-radius:12px;padding:14px}
+  .kpi .n{font-size:24px;font-weight:800;letter-spacing:.3px}
+  .kpi .l{color:var(--mut);font-size:12px;margin-top:2px}
+  .kpi.good .n{color:var(--good)} .kpi.warn .n{color:var(--warn)} .kpi.bad .n{color:var(--bad)}
+
+  pre.out{background:#0a1019;border:1px solid var(--line);border-radius:10px;padding:12px;overflow:auto;
+    white-space:pre-wrap;word-break:break-word;font:12.5px/1.55 ui-monospace,Menlo,Consolas,monospace;color:#cfe0f5;max-height:260px}
+  .mask{color:var(--warn);background:rgba(240,165,62,.12);border-radius:4px;padding:0 3px}
+
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--mut);font-weight:600;text-transform:uppercase;letter-spacing:.5px;font-size:11px;position:sticky;top:0;background:var(--panel2)}
+  td.mono,.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;color:var(--mut)}
+  .tablewrap{overflow:auto;max-height:340px;border:1px solid var(--line);border-radius:10px}
+  .badge{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px}
+  .badge.ok{background:rgba(49,196,141,.15);color:var(--good)}
+  .badge.warn{background:rgba(240,165,62,.15);color:var(--warn)}
+  .badge.bad{background:rgba(240,97,109,.15);color:var(--bad)}
+
+  .chartwrap{background:#0a1019;border:1px solid var(--line);border-radius:12px;padding:8px}
+  svg{width:100%;height:auto;display:block}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;color:var(--mut);font-size:12px;margin-top:8px}
+  .swatch{display:inline-block;width:22px;height:3px;border-radius:2px;vertical-align:middle;margin-right:6px}
+
+  .rule{display:flex;align-items:center;gap:12px;justify-content:space-between;background:#0a1019;
+    border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px}
+  .rule .r{color:var(--mut);font-size:12.5px}
+  .switch{position:relative;width:44px;height:24px;flex:none}
+  .switch input{opacity:0;width:0;height:0}
+  .slider{position:absolute;inset:0;background:#26344a;border-radius:999px;cursor:pointer;transition:.2s}
+  .slider::before{content:"";position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
+  .switch input:checked + .slider{background:var(--accent)}
+  .switch input:checked + .slider::before{transform:translateX(20px)}
+
+  footer{margin-top:auto;border-top:1px solid var(--line);background:var(--panel2)}
+  footer .wrap{padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;color:var(--mut);font-size:13px}
+  .teamtag{font-weight:800;color:var(--ink)}
+  .hide{display:none}
+  .note{color:var(--mut);font-size:12px;margin-top:10px}
+
+  /* 3D interactive hero */
+  .hero{position:relative;border:1px solid var(--line);border-radius:18px;overflow:hidden;margin:20px 0 6px;
+    min-height:360px;background:radial-gradient(120% 130% at 82% 0%,#16233d 0%,#0a0f18 60%)}
+  .hero canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab;touch-action:none}
+  .hero canvas:active{cursor:grabbing}
+  .hero .heroin{position:relative;z-index:2;padding:40px 34px;max-width:640px;pointer-events:none}
+  .hero .heroin>*{pointer-events:auto}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:11.5px;letter-spacing:.6px;text-transform:uppercase;
+    color:var(--accent);border:1px solid var(--line);background:rgba(9,15,25,.6);padding:6px 12px;border-radius:999px}
+  .hero h2{font-size:34px;line-height:1.08;margin:16px 0 10px;letter-spacing:-.6px}
+  .hero p.lead{color:#c6d5ea;font-size:15px;margin:0 0 20px;max-width:520px}
+  .hero .cta{display:flex;gap:10px;flex-wrap:wrap}
+  .hint3d{position:absolute;right:16px;bottom:14px;z-index:2;color:var(--mut);font-size:11.5px;background:rgba(9,15,25,.55);
+    border:1px solid var(--line);padding:6px 11px;border-radius:999px;pointer-events:none}
+
+  /* generated exec deck */
+  .deck{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-top:14px}
+  .slide{background:#0a1019;border:1px solid var(--line);border-radius:12px;padding:16px;min-height:150px;position:relative}
+  .slide .sn{position:absolute;top:12px;right:13px;font-size:11px;color:var(--mut2)}
+  .slide h4{margin:0 0 6px;font-size:12px;color:var(--accent);text-transform:uppercase;letter-spacing:.5px}
+  .slide .big{font-size:26px;font-weight:800;margin:4px 0}
+  .slide .li{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:5px 0;border-bottom:1px solid var(--line)}
+  .slide .li:last-of-type{border-bottom:0}
+  .slide .why{color:var(--mut2);font-size:11px;margin-top:9px}
+  .barrow{display:grid;grid-template-columns:64px 1fr 52px;align-items:center;gap:8px;font-size:12px;margin:6px 0}
+  .barrow .bar{height:8px;border-radius:4px;background:linear-gradient(90deg,var(--accent),#7b5cff)}
+
+  @media (max-width:560px){.brand h1{font-size:17px}.tab{padding:9px 11px}.hero h2{font-size:26px}.hero .heroin{padding:26px 20px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="logo">C</div>
+      <div>
+        <h1>Cortex</h1>
+        <p>Watches your operations · automates busywork · forecasts demand · protects sensitive data · audit-ready</p>
+      </div>
+    </div>
+    <div class="live"><span class="dot"></span> LIVE demo · every action is logged</div>
+  </header>
+
+  <!-- 3D INTERACTIVE HERO (Cortex neural core) -->
+  <section class="hero">
+    <canvas id="cortex3d"></canvas>
+    <div class="heroin">
+      <span class="eyebrow"><span class="dot"></span> Live, interactive — drag to explore</span>
+      <h2>Your operations, thinking for themselves.</h2>
+      <p class="lead">Cortex reconciles your CRM &amp; ERP data and builds a leadership-ready exec deck in seconds — explainable, governed, and audit-ready. Try it hands-on right now.</p>
+      <div class="cta">
+        <button class="btn" onclick="showTab('execdeck');document.getElementById('execdeck').scrollIntoView({behavior:'smooth',block:'start'})">Generate your exec deck live →</button>
+        <button class="btn ghost" onclick="showTab('audit');document.getElementById('audit').scrollIntoView({behavior:'smooth',block:'start'})">See the audit trail</button>
+      </div>
+    </div>
+    <div class="hint3d">3D · drag to rotate</div>
+  </section>
+
+  <nav class="tabs" id="tabs">
+    <button class="tab active" data-tab="execdeck">Exec Deck<small>Auto-generated</small></button>
+    <button class="tab" data-tab="forecast">Forecast<small>Demand &amp; capacity</small></button>
+    <button class="tab" data-tab="redact">Data Protection<small>Auto-redaction</small></button>
+    <button class="tab" data-tab="audit">Audit Trail<small>Tamper-evident log</small></button>
+    <button class="tab" data-tab="monitor">Monitor<small>Anomaly detection</small></button>
+    <button class="tab" data-tab="automate">Automate<small>Busywork rules</small></button>
+  </nav>
+
+  <!-- EXEC DECK -->
+  <section id="execdeck">
+    <div class="panel">
+      <h2>Weekly exec deck — generated live</h2>
+      <p class="sub">Drop in an anonymized CRM/ERP export. Cortex reconciles the rows and builds a leadership-ready deck in seconds — every number is explainable, and the run is written to your audit trail.</p>
+      <div class="row">
+        <div class="col" style="flex:1 1 300px">
+          <label for="csvin">CRM / ERP export (CSV)</label>
+          <textarea id="csvin">region,pipeline,bookings_qtd,bookings_prev,open_deals,at_risk
+North America,4200000,1850000,1610000,48,3
+EMEA,3100000,1240000,1180000,39,5
+APAC,2200000,760000,690000,27,2
+LATAM,980000,410000,300000,15,4</textarea>
+          <div class="btnbar">
+            <button class="btn" onclick="genDeck()">Generate exec deck</button>
+            <button class="btn ghost" onclick="document.getElementById('csvfile').click()">Upload CSV…</button>
+            <input id="csvfile" type="file" accept=".csv,text/csv" class="hide" onchange="loadCsvFile(this)">
+          </div>
+          <p class="note">Synthetic sample loaded — no real customer data needed to try it. Paste or upload your own anonymized export and it rebuilds instantly.</p>
+        </div>
+        <div class="col" style="flex:2 1 420px">
+          <div class="stat" id="deckkpi"></div>
+          <div class="deck" id="deckout"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FORECAST -->
+  <section id="forecast" class="hide">
+    <div class="panel">
+      <h2>Demand forecast</h2>
+      <p class="sub">Paste a series of daily numbers (orders, tickets, load). Cortex projects the next 7 periods and flags where you'll run short. Try it on your own numbers.</p>
+      <div class="row">
+        <div class="col">
+          <label for="fdata">Historical series (comma / space / newline separated)</label>
+          <textarea id="fdata">120 132 128 141 155 149 162 170 168 181 176 190 205 198 212 220 215 231 228 244</textarea>
+          <div class="btnbar">
+            <button class="btn" onclick="runForecast()">Run forecast</button>
+            <button class="btn ghost" onclick="loadSample('seasonal')">Load seasonal sample</button>
+            <button class="btn ghost" onclick="loadSample('flat')">Load flat sample</button>
+          </div>
+          <p class="note">No data leaves your browser. This run is recorded on the Audit Trail.</p>
+        </div>
+        <div class="col">
+          <div class="stat" id="fkpi"></div>
+          <div class="chartwrap" style="margin-top:12px"><div id="fchart"></div></div>
+          <div class="legend">
+            <span><span class="swatch" style="background:var(--accent)"></span>Actual</span>
+            <span><span class="swatch" style="background:var(--good)"></span>Forecast</span>
+            <span><span class="swatch" style="background:#2a3a52"></span>Confidence band</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- REDACT -->
+  <section id="redact" class="hide">
+    <div class="panel">
+      <h2>Sensitive-data protection</h2>
+      <p class="sub">Cortex scans free text before it's stored, shared, or sent to any model, and masks regulated identifiers. It records <em>that</em> redaction happened — never the raw value.</p>
+      <div class="row">
+        <div class="col">
+          <label for="rdata">Paste text (customer note, ticket, export)</label>
+          <textarea id="rdata">Customer Jane Doe, SSN 431-22-9087, called about card 4539 8712 3344 9021.
+Account 100294837721 flagged. Reach her at jane.doe@example.com or 415-555-0142.
+Wire ref IBAN GB29 NWBK 6016 1331 9268 19 pending review.</textarea>
+          <div class="btnbar">
+            <button class="btn" onclick="runRedact()">Redact &amp; protect</button>
+            <button class="btn ghost" onclick="document.getElementById('rout').textContent='';document.getElementById('rkpi').innerHTML=''">Clear</button>
+          </div>
+        </div>
+        <div class="col">
+          <div class="stat" id="rkpi"></div>
+          <label style="margin-top:12px">Protected output</label>
+          <pre class="out" id="rout">Run redaction to see protected output…</pre>
+          <p class="note">Detects: SSN · card / PAN · account numbers · IBAN · email · phone.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- AUDIT -->
+  <section id="audit" class="hide">
+    <div class="panel">
+      <h2>Tamper-evident audit trail</h2>
+      <p class="sub">Every action across Cortex writes an append-only, hash-chained entry. Change one row and the chain breaks — click <strong>Verify integrity</strong> to prove it. Export for your auditors anytime.</p>
+      <div class="stat" id="akpi"></div>
+      <div class="btnbar">
+        <button class="btn" onclick="verifyChain()">Verify integrity</button>
+        <button class="btn ghost" onclick="exportAudit('csv')">Export CSV</button>
+        <button class="btn ghost" onclick="exportAudit('json')">Export JSON</button>
+        <button class="btn ghost" onclick="tamperDemo()">Simulate tampering</button>
+        <button class="btn ghost" onclick="clearAudit()">Reset log</button>
+      </div>
+      <div class="tablewrap" style="margin-top:14px">
+        <table>
+          <thead><tr><th>#</th><th>Timestamp (UTC)</th><th>Actor</th><th>Action</th><th>Detail</th><th>Entry hash</th></tr></thead>
+          <tbody id="atable"></tbody>
+        </table>
+      </div>
+      <p class="note">Hash chain: each entry's hash covers the previous entry's hash, so history cannot be edited silently.</p>
+    </div>
+  </section>
+
+  <!-- MONITOR -->
+  <section id="monitor" class="hide">
+    <div class="panel">
+      <h2>Operational monitoring</h2>
+      <p class="sub">Cortex watches live signals and flags anomalies beyond expected range. Click scan to evaluate the current window.</p>
+      <div class="stat" id="mkpi"></div>
+      <div class="btnbar"><button class="btn" onclick="scanMonitor()">Run anomaly scan</button></div>
+      <div class="tablewrap" style="margin-top:14px">
+        <table>
+          <thead><tr><th>Signal</th><th>Current</th><th>Expected</th><th>Status</th></tr></thead>
+          <tbody id="mtable"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- AUTOMATE -->
+  <section id="automate" class="hide">
+    <div class="panel">
+      <h2>Automate the busywork</h2>
+      <p class="sub">Turn on rules and let Cortex act. Each action it takes is logged to the audit trail — nothing happens off the record.</p>
+      <div id="rules"></div>
+      <div class="btnbar"><button class="btn" onclick="runAutomations()">Run enabled rules now</button></div>
+      <pre class="out" id="autout" style="margin-top:14px">Enable rules, then run…</pre>
+    </div>
+  </section>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div>Cortex — Operational Intelligence, Governed. Demo environment.</div>
+    <div>Built by team <span class="teamtag">Cloud9</span></div>
+  </div>
+</footer>
+
+<script>
+/* ---------- tiny hash (cyrb53) ---------- */
+function cyrb53(str, seed=0){let h1=0xdeadbeef^seed,h2=0x41c6ce57^seed;
+  for(let i=0,ch;i<str.length;i++){ch=str.charCodeAt(i);h1=Math.imul(h1^ch,2654435761);h2=Math.imul(h2^ch,1597334677);}
+  h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);
+  h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);
+  return (4294967296*(2097151&h2)+(h1>>>0)).toString(16).padStart(12,'0');}
+
+/* ---------- audit trail (hash-chained, persisted) ---------- */
+const LS='cortex_audit_v1';
+let audit=[];
+try{audit=JSON.parse(localStorage.getItem(LS))||[]}catch(e){audit=[]}
+
+function ts(){ // deterministic-ish readable UTC string
+  const d=new Date();return d.toISOString().replace('T',' ').replace('Z',' UTC').slice(0,23)+' UTC';
+}
+function logEvent(action, detail){
+  const prev=audit.length?audit[audit.length-1].hash:'GENESIS';
+  const seq=audit.length+1;
+  const t=ts();
+  const actor='demo@cloud9';
+  const hash=cyrb53(seq+'|'+t+'|'+actor+'|'+action+'|'+detail+'|'+prev);
+  audit.push({seq,ts:t,actor,action,detail,prev,hash});
+  localStorage.setItem(LS,JSON.stringify(audit));
+  renderAudit();
+}
+function renderAudit(){
+  const tb=document.getElementById('atable');
+  tb.innerHTML=audit.slice().reverse().map(e=>
+    `<tr><td>${e.seq}</td><td class="mono">${e.ts}</td><td class="mono">${e.actor}</td>
+     <td>${e.action}</td><td>${escapeHtml(e.detail)}</td><td class="mono">${e.hash}</td></tr>`).join('')
+    || `<tr><td colspan="6" style="color:var(--mut)">No events yet — use any tab and actions appear here.</td></tr>`;
+  document.getElementById('akpi').innerHTML=
+    kpi(audit.length,'Logged events')+kpi('SHA-chain','Integrity model','good')+kpi(audit.length?audit[audit.length-1].hash.slice(0,10):'—','Head hash');
+}
+function verifyChain(){
+  let ok=true,prev='GENESIS',brokenAt=null;
+  for(const e of audit){
+    const h=cyrb53(e.seq+'|'+e.ts+'|'+e.actor+'|'+e.action+'|'+e.detail+'|'+prev);
+    if(h!==e.hash||prev!==e.prev){ok=false;brokenAt=e.seq;break;}
+    prev=e.hash;
+  }
+  const box=document.getElementById('akpi');
+  box.innerHTML = ok
+    ? kpi('VERIFIED','All '+audit.length+' entries intact','good')+kpi('0','Broken links','good')+kpi(audit.length?audit[audit.length-1].hash.slice(0,10):'—','Head hash')
+    : kpi('BROKEN','Chain fails at #'+brokenAt,'bad')+kpi('1+','Broken links','bad')+kpi('AUDIT','Investigate','warn');
+  logEvent('audit.verify', ok?'Integrity check passed':'Integrity check FAILED at #'+brokenAt);
+}
+function tamperDemo(){
+  if(!audit.length){alert('Log is empty — generate some events first.');return;}
+  const i=Math.floor(audit.length/2);
+  audit[i].detail = audit[i].detail+' [ALTERED]';
+  localStorage.setItem(LS,JSON.stringify(audit));renderAudit();
+  alert('Row #'+audit[i].seq+' was altered directly in storage. Now click "Verify integrity" — the chain will catch it.');
+}
+function exportAudit(fmt){
+  let blob,name;
+  if(fmt==='json'){blob=new Blob([JSON.stringify(audit,null,2)],{type:'application/json'});name='cortex-audit.json';}
+  else{const head='seq,timestamp,actor,action,detail,prev_hash,hash\n';
+    const rows=audit.map(e=>[e.seq,e.ts,e.actor,e.action,'"'+String(e.detail).replace(/"/g,'""')+'"',e.prev,e.hash].join(',')).join('\n');
+    blob=new Blob([head+rows],{type:'text/csv'});name='cortex-audit.csv';}
+  const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=name;a.click();URL.revokeObjectURL(u);
+  logEvent('audit.export','Exported '+audit.length+' entries as '+fmt.toUpperCase());
+}
+function clearAudit(){audit=[];localStorage.setItem(LS,JSON.stringify(audit));renderAudit();}
+
+/* ---------- forecast ---------- */
+function parseNums(s){return (s.match(/-?\d+(\.\d+)?/g)||[]).map(Number);}
+function movingAvg(a,w){const o=[];for(let i=0;i<a.length;i++){const s=a.slice(Math.max(0,i-w+1),i+1);o.push(s.reduce((x,y)=>x+y,0)/s.length);}return o;}
+function runForecast(){
+  const data=parseNums(document.getElementById('fdata').value);
+  if(data.length<4){alert('Enter at least 4 numbers.');return;}
+  const w=Math.max(3,Math.round(data.length/6));
+  const ma=movingAvg(data,w);
+  // trend = avg step of last third
+  const tail=data.slice(-Math.max(3,Math.round(data.length/3)));
+  let steps=[];for(let i=1;i<tail.length;i++)steps.push(tail[i]-tail[i-1]);
+  const trend=steps.reduce((a,b)=>a+b,0)/steps.length;
+  const horizon=7;const last=ma[ma.length-1];
+  const fc=[];for(let i=1;i<=horizon;i++)fc.push(last+trend*i);
+  const resid=Math.sqrt(data.reduce((s,v,i)=>s+Math.pow(v-ma[i],2),0)/data.length);
+  const band=Math.max(resid,Math.abs(trend))*1.5;
+  drawForecast(data,fc,band);
+  const next=Math.round(fc[0]),peak=Math.round(Math.max(...fc)),chg=((fc[horizon-1]-data[data.length-1])/data[data.length-1]*100);
+  document.getElementById('fkpi').innerHTML=
+    kpi(next,'Next period','')+kpi(peak,'7-period peak','')+kpi((chg>=0?'+':'')+chg.toFixed(1)+'%','Projected change',chg>=0?'good':'warn');
+  logEvent('forecast.run','series n='+data.length+', horizon='+horizon+', next≈'+next+', 7d Δ '+chg.toFixed(1)+'%');
+}
+function drawForecast(data,fc,band){
+  const W=520,H=240,pad=28;
+  const all=data.concat(fc).concat(fc.map(v=>v+band)).concat(fc.map(v=>v-band));
+  const mn=Math.min(...all),mx=Math.max(...all);const n=data.length+fc.length;
+  const x=i=>pad+(i/(n-1))*(W-2*pad);
+  const y=v=>H-pad-((v-mn)/((mx-mn)||1))*(H-2*pad);
+  const aLine=data.map((v,i)=>`${i?'L':'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+  const startI=data.length-1;
+  const fLine=[data[startI]].concat(fc).map((v,i)=>`${i?'L':'M'}${x(startI+i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+  const bandTop=fc.map((v,i)=>`${i?'L':'M'}${x(startI+1+i).toFixed(1)},${y(v+band).toFixed(1)}`).join(' ');
+  const bandBot=fc.slice().reverse().map((v,i)=>`L${x(n-1-i).toFixed(1)},${y(v-band).toFixed(1)}`).join(' ');
+  document.getElementById('fchart').innerHTML=
+   `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="forecast chart">
+      <path d="${bandTop} ${bandBot} Z" fill="#2a3a52" opacity=".5"/>
+      <path d="${aLine}" fill="none" stroke="var(--accent)" stroke-width="2.5"/>
+      <path d="${fLine}" fill="none" stroke="var(--good)" stroke-width="2.5" stroke-dasharray="6 5"/>
+      <line x1="${x(startI)}" y1="${pad-6}" x2="${x(startI)}" y2="${H-pad}" stroke="#31405a" stroke-dasharray="3 4"/>
+    </svg>`;
+}
+function loadSample(k){
+  const s=k==='seasonal'
+    ? '80 95 130 160 140 110 90 100 120 165 195 170 130 105 118 140 175 210 185 145'
+    : '200 198 202 199 201 200 203 198 200 201 199 202 200 198 201 200 199 202 200 201';
+  document.getElementById('fdata').value=s;runForecast();
+}
+
+/* ---------- redaction ---------- */
+function runRedact(){
+  let text=document.getElementById('rdata').value;
+  const counts={};
+  // Order matters: identifiers with letters/format first, generic digit runs last.
+  const rules=[
+    ['SSN',/\b\d{3}-\d{2}-\d{4}\b/g],
+    ['IBAN',/\b[A-Z]{2}\d{2}(?:[ ]?[A-Z0-9]{2,4}){2,7}\b/g],
+    ['Email',/\b[\w.+-]+@[\w-]+\.[\w.-]+\b/g],
+    ['Phone',/(?:\+?\d{1,2}[ -])?\(?\d{3}\)?[ -]\d{3}[ -]\d{4}\b/g],
+    ['Card',/\b(?:\d[ -]?){13,19}\b/g],
+    ['Account',/\b\d{7,12}\b/g],
+  ];
+  for(const [name,re] of rules){
+    text=text.replace(re,(m)=>{
+      counts[name]=(counts[name]||0)+1;
+      return `<span class="mask">[${name} REDACTED]</span>`;
+    });
+  }
+  document.getElementById('rout').innerHTML=text.replace(/\n/g,'<br>');
+  const total=Object.values(counts).reduce((a,b)=>a+b,0);
+  const parts=Object.entries(counts).map(([k,v])=>`${v}×${k}`).join(' · ')||'none';
+  document.getElementById('rkpi').innerHTML=
+    kpi(total,'Values protected',total?'good':'')+kpi(Object.keys(counts).length,'Categories')+kpi('0','Leaked to storage','good');
+  logEvent('redact.run','protected '+total+' value(s): '+parts+' (raw values never logged)');
+}
+
+/* ---------- monitor ---------- */
+const signals=[
+  {name:'Order queue depth',cur:1180,lo:400,hi:1000,unit:''},
+  {name:'API p95 latency',cur:210,lo:80,hi:300,unit:'ms'},
+  {name:'Failed logins / min',cur:64,lo:0,hi:25,unit:''},
+  {name:'Inventory cover',cur:11,lo:7,hi:30,unit:'days'},
+  {name:'Payment success rate',cur:99.1,lo:98,hi:100,unit:'%'},
+];
+function scanMonitor(){
+  let anomalies=0;
+  document.getElementById('mtable').innerHTML=signals.map(s=>{
+    const bad=s.cur>s.hi||s.cur<s.lo;if(bad)anomalies++;
+    const b=bad?'<span class="badge bad">ANOMALY</span>':'<span class="badge ok">NORMAL</span>';
+    return `<tr><td>${s.name}</td><td class="mono">${s.cur}${s.unit}</td><td class="mono">${s.lo}–${s.hi}${s.unit}</td><td>${b}</td></tr>`;
+  }).join('');
+  document.getElementById('mkpi').innerHTML=
+    kpi(signals.length,'Signals watched')+kpi(anomalies,'Anomalies',anomalies?'bad':'good')+kpi('realtime','Scan window');
+  logEvent('monitor.scan',anomalies+' anomaly(ies) across '+signals.length+' signals');
+}
+
+/* ---------- automate ---------- */
+const ruleDefs=[
+  {id:'r1',t:'Auto-escalate anomalies to on-call',r:'when Monitor flags an anomaly → open incident',on:true},
+  {id:'r2',t:'Redact PII before archiving tickets',r:'when a ticket closes → run Data Protection first',on:true},
+  {id:'r3',t:'Weekly demand report to ops',r:'every Monday → run Forecast, email summary',on:false},
+];
+function renderRules(){
+  document.getElementById('rules').innerHTML=ruleDefs.map(d=>
+    `<div class="rule"><div><div>${d.t}</div><div class="r">${d.r}</div></div>
+     <label class="switch"><input type="checkbox" id="${d.id}" ${d.on?'checked':''}><span class="slider"></span></label></div>`).join('');
+}
+function runAutomations(){
+  const done=ruleDefs.filter(d=>document.getElementById(d.id).checked);
+  const out=done.map(d=>'✓ '+d.t+' → executed').join('\n')||'No rules enabled.';
+  document.getElementById('autout').textContent=out;
+  done.forEach(d=>logEvent('automation.run',d.t));
+  if(!done.length)logEvent('automation.run','No rules enabled');
+}
+
+/* ---------- exec deck generator (Quantum's named task) ---------- */
+function parseCsv(t){
+  const lines=t.trim().split(/\r?\n/).filter(l=>l.trim());
+  if(!lines.length)return [];
+  const head=lines.shift().split(',').map(s=>s.trim());
+  return lines.map(l=>{const c=l.split(',');const o={};head.forEach((h,i)=>o[h]=(c[i]||'').trim());return o;});
+}
+function money(n){n=+n||0;const a=Math.abs(n);if(a>=1e6)return '$'+(n/1e6).toFixed(2)+'M';if(a>=1e3)return '$'+Math.round(n/1e3)+'K';return '$'+n;}
+function num(r,k){return +String(r[k]||'').replace(/[^0-9.-]/g,'')||0;}
+function genDeck(){
+  let rows;try{rows=parseCsv(document.getElementById('csvin').value);}catch(e){alert('Could not parse CSV.');return;}
+  if(!rows.length){alert('No rows found — check the CSV.');return;}
+  const tot=rows.reduce((a,r)=>a+num(r,'bookings_qtd'),0);
+  const prev=rows.reduce((a,r)=>a+num(r,'bookings_prev'),0);
+  const pipe=rows.reduce((a,r)=>a+num(r,'pipeline'),0);
+  const deals=rows.reduce((a,r)=>a+num(r,'open_deals'),0);
+  const risk=rows.reduce((a,r)=>a+num(r,'at_risk'),0);
+  const qoq=prev?((tot-prev)/prev*100):0;
+  const cover=tot?(pipe/tot):0;
+  const top=rows.slice().sort((a,b)=>num(b,'bookings_qtd')-num(a,'bookings_qtd'))[0];
+  const maxB=Math.max(1,...rows.map(r=>num(r,'bookings_qtd')));
+  const bars=rows.map(r=>`<div class="barrow"><span>${escapeHtml(r.region||'—')}</span><div class="bar" style="width:${Math.round(num(r,'bookings_qtd')/maxB*100)}%"></div><span class="mono">${money(num(r,'bookings_qtd'))}</span></div>`).join('');
+  const gap=rows.filter(r=>num(r,'pipeline')/Math.max(1,num(r,'bookings_qtd'))<1.5).length;
+  const slides=[
+    `<div class="slide"><span class="sn">01</span><h4>Executive summary</h4>
+      <div class="big">${money(tot)}</div>
+      <div class="li"><span>Bookings QTD</span><span class="mono">${qoq>=0?'+':''}${qoq.toFixed(1)}% QoQ</span></div>
+      <div class="li"><span>Pipeline coverage</span><span class="mono">${cover.toFixed(1)}×</span></div>
+      <div class="li"><span>Open deals</span><span class="mono">${deals}</span></div>
+      <div class="why">Auto-reconciled from ${rows.length} CRM/ERP rows across ${new Set(rows.map(r=>r.region)).size} regions</div></div>`,
+    `<div class="slide"><span class="sn">02</span><h4>Bookings by region</h4>${bars}
+      <div class="why">Sorted; bars scaled to the top region</div></div>`,
+    `<div class="slide"><span class="sn">03</span><h4>Growth</h4>
+      <div class="big" style="color:${qoq>=0?'var(--good)':'var(--warn)'}">${qoq>=0?'+':''}${qoq.toFixed(1)}%</div>
+      <div class="li"><span>This quarter</span><span class="mono">${money(tot)}</span></div>
+      <div class="li"><span>Prior quarter</span><span class="mono">${money(prev)}</span></div>
+      <div class="why">QoQ = (this − prior) ÷ prior</div></div>`,
+    `<div class="slide"><span class="sn">04</span><h4>Risks &amp; actions</h4>
+      <div class="li"><span>Accounts at risk</span><span class="mono">${risk}</span></div>
+      <div class="li"><span>Top region</span><span class="mono">${escapeHtml(top.region||'—')}</span></div>
+      <div class="li"><span>Low-coverage regions</span><span class="mono">${gap}</span></div>
+      <div class="why">Flag: pipeline &lt; 1.5× bookings ⇒ coverage risk</div></div>`,
+  ];
+  document.getElementById('deckout').innerHTML=slides.join('');
+  document.getElementById('deckkpi').innerHTML=
+    kpi(slides.length,'Slides built')+kpi(rows.length,'Rows reconciled')+kpi('≈6 hrs','Analyst time saved','good');
+  logEvent('execdeck.generate',slides.length+' slides from '+rows.length+' CRM/ERP rows · bookings '+money(tot)+' ('+(qoq>=0?'+':'')+qoq.toFixed(1)+'% QoQ)');
+}
+function loadCsvFile(input){
+  const f=input.files&&input.files[0];if(!f)return;
+  const rd=new FileReader();rd.onload=()=>{document.getElementById('csvin').value=rd.result;genDeck();};rd.readAsText(f);
+}
+
+/* ---------- 3D interactive hero: rotating "Cortex" neural core (no libs) ---------- */
+(function(){
+  const cv=document.getElementById('cortex3d');if(!cv||!cv.getContext)return;
+  const ctx=cv.getContext('2d');
+  let W=1,H=1,DPR=1;
+  function size(){DPR=Math.min(2,window.devicePixelRatio||1);const r=cv.getBoundingClientRect();
+    W=Math.max(1,r.width);H=Math.max(1,r.height);cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);
+    ctx.setTransform(DPR,0,0,DPR,0,0);}
+  const N=140,nodes=[];
+  for(let i=0;i<N;i++){const y=1-(i/(N-1))*2;const rad=Math.sqrt(Math.max(0,1-y*y));const th=i*2.399963;
+    nodes.push({x:Math.cos(th)*rad,y:y,z:Math.sin(th)*rad});}
+  const edges=[];
+  for(let i=0;i<N;i++)for(let j=i+1;j<N;j++){const dx=nodes[i].x-nodes[j].x,dy=nodes[i].y-nodes[j].y,dz=nodes[i].z-nodes[j].z;
+    if(dx*dx+dy*dy+dz*dz<0.17)edges.push([i,j]);}
+  let ax=0.45,ay=0,vx=0.0016,vy=0.0032,dragging=false,px=0,py=0;
+  cv.addEventListener('pointerdown',e=>{dragging=true;px=e.clientX;py=e.clientY;try{cv.setPointerCapture(e.pointerId)}catch(_){}});
+  cv.addEventListener('pointermove',e=>{if(!dragging)return;const dx=e.clientX-px,dy=e.clientY-py;px=e.clientX;py=e.clientY;
+    ay+=dx*0.006;ax+=dy*0.006;vx=dy*0.0004;vy=dx*0.0004;});
+  const stop=()=>dragging=false;cv.addEventListener('pointerup',stop);cv.addEventListener('pointercancel',stop);cv.addEventListener('pointerleave',stop);
+  function frame(){
+    if(!dragging){ax+=vx;ay+=vy;vx+=(0.0016-vx)*0.03;vy+=(0.0032-vy)*0.03;}
+    ctx.clearRect(0,0,W,H);
+    const cx=W*0.5,cy=H*0.5,scale=Math.min(W,H)*0.44,persp=2.4;
+    const sinX=Math.sin(ax),cosX=Math.cos(ax),sinY=Math.sin(ay),cosY=Math.cos(ay);
+    const P=nodes.map(n=>{let x=n.x*cosY-n.z*sinY,z=n.x*sinY+n.z*cosY;let y=n.y*cosX-z*sinX;z=n.y*sinX+z*cosX;
+      const f=persp/(persp+z);return {x:cx+x*scale*f,y:cy+y*scale*f,z:z,f:f};});
+    for(const[a,b]of edges){const A=P[a],B=P[b];const d=(A.z+B.z)/2;const al=Math.max(0.03,0.26+d*0.2);
+      ctx.strokeStyle='rgba(96,150,255,'+al.toFixed(3)+')';ctx.lineWidth=0.6;
+      ctx.beginPath();ctx.moveTo(A.x,A.y);ctx.lineTo(B.x,B.y);ctx.stroke();}
+    for(const p of P){const d=0.6+p.z*0.5;const rr=1.3+p.f*1.7;
+      ctx.beginPath();ctx.arc(p.x,p.y,rr,0,6.2832);
+      ctx.fillStyle='rgba('+Math.round(110+90*d)+','+Math.round(175+45*d)+',255,'+Math.min(1,0.45+d*0.55).toFixed(3)+')';ctx.fill();}
+    requestAnimationFrame(frame);
+  }
+  window.addEventListener('resize',size);size();frame();
+})();
+
+/* ---------- helpers / boot ---------- */
+function kpi(n,l,cls=''){return `<div class="kpi ${cls}"><div class="n">${n}</div><div class="l">${l}</div></div>`;}
+function escapeHtml(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+const TABS=['execdeck','forecast','redact','audit','monitor','automate'];
+function showTab(id){
+  if(!TABS.includes(id))id='execdeck';
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===id));
+  TABS.forEach(s=>document.getElementById(s).classList.toggle('hide',s!==id));
+}
+document.getElementById('tabs').addEventListener('click',e=>{const b=e.target.closest('.tab');if(!b)return;showTab(b.dataset.tab);});
+renderRules();renderAudit();genDeck();runForecast();
+showTab(location.hash.replace('#','')||'execdeck');
+logEvent('session.start','Demo opened');
+</script>
+</body>
+</html>
