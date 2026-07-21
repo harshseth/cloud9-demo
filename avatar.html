@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cortex — Live AI Avatar</title>
+<style>
+  :root{
+    --bg:#0B0E1A; --panel:rgba(255,255,255,.04); --stroke:rgba(255,255,255,.09);
+    --cyan:#35E0D8; --violet:#8B7CF6; --text:#E8ECF5; --muted:#8A93AD;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:
+      radial-gradient(1200px 600px at 50% -10%, rgba(139,124,246,.18), transparent 60%),
+      radial-gradient(900px 500px at 80% 110%, rgba(53,224,216,.12), transparent 55%),
+      var(--bg);
+    color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    min-height:100dvh; padding:24px; gap:26px;
+  }
+  .stage{display:flex; flex-direction:column; align-items:center; gap:18px}
+
+  /* ---- avatar ---- */
+  .halo{
+    position:relative; width:200px; height:200px; display:grid; place-items:center;
+    animation:float 5s ease-in-out infinite;
+  }
+  .halo::before{
+    content:""; position:absolute; inset:-14px; border-radius:38%;
+    background:conic-gradient(from 0deg, var(--cyan), var(--violet), var(--cyan));
+    filter:blur(22px); opacity:.35; transition:opacity .3s ease; z-index:0;
+  }
+  .halo.speaking::before{opacity:.85; animation:spin 4s linear infinite}
+  .head{
+    position:relative; z-index:1; width:170px; height:170px; border-radius:34%;
+    background:linear-gradient(160deg,#1b2033,#0f1322); border:1px solid var(--stroke);
+    box-shadow:inset 0 2px 18px rgba(139,124,246,.25), 0 20px 50px rgba(0,0,0,.5);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px;
+  }
+  .eyes{display:flex; gap:34px}
+  .eye{width:16px; height:26px; border-radius:9px;
+    background:linear-gradient(var(--cyan),var(--violet)); box-shadow:0 0 12px rgba(53,224,216,.7);
+    transform-origin:center; animation:blink 4.5s infinite}
+  .eye.r{animation-delay:.05s}
+  /* ---- mouth: live waveform ---- */
+  .mouth{display:flex; align-items:center; gap:5px; height:34px}
+  .bar{width:6px; height:6px; border-radius:6px;
+    background:linear-gradient(var(--cyan),var(--violet));
+    transition:height .09s ease; box-shadow:0 0 8px rgba(139,124,246,.5)}
+
+  /* ---- status ---- */
+  .status{font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); height:16px}
+  .status b{color:var(--cyan); font-weight:600}
+
+  /* ---- controls ---- */
+  .controls{width:min(560px,100%); display:flex; flex-direction:column; gap:12px}
+  .row{display:flex; gap:10px}
+  input[type=text]{
+    flex:1; padding:14px 16px; border-radius:14px; border:1px solid var(--stroke);
+    background:var(--panel); color:var(--text); font-size:15px; outline:none;
+  }
+  input[type=text]:focus{border-color:var(--violet); box-shadow:0 0 0 3px rgba(139,124,246,.2)}
+  button{
+    padding:14px 22px; border-radius:14px; border:0; cursor:pointer; font-size:15px; font-weight:600;
+    color:#0B0E1A; background:linear-gradient(120deg,var(--cyan),var(--violet)); transition:transform .1s ease;
+  }
+  button:hover{transform:translateY(-1px)} button:active{transform:translateY(0)}
+  button:disabled{opacity:.5; cursor:default; transform:none}
+  .chips{display:flex; flex-wrap:wrap; gap:8px; justify-content:center}
+  .chip{padding:7px 13px; border-radius:999px; font-size:13px; cursor:pointer; color:var(--muted);
+    background:var(--panel); border:1px solid var(--stroke)}
+  .chip:hover{color:var(--text); border-color:var(--violet)}
+  footer{color:var(--muted); font-size:12px; letter-spacing:.04em; text-align:center}
+  footer b{color:var(--text); font-weight:700}
+  footer a{color:var(--cyan); text-decoration:none}
+  @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="halo" id="halo">
+      <div class="head">
+        <div class="eyes"><div class="eye l"></div><div class="eye r"></div></div>
+        <div class="mouth" id="mouth"></div>
+      </div>
+    </div>
+    <div class="status" id="status">Ready</div>
+  </div>
+
+  <div class="controls">
+    <div class="row">
+      <input type="text" id="input" placeholder="Type something and press Speak…" autocomplete="off">
+      <button id="send">Speak</button>
+    </div>
+    <div class="chips">
+      <span class="chip">Introduce yourself</span>
+      <span class="chip">Tell me a joke</span>
+      <span class="chip">What can you do?</span>
+    </div>
+  </div>
+
+  <footer>Cortex — demo environment · Built by team <b>Cloud9</b> · <a href="./">← back to Cortex</a></footer>
+
+<script>
+  const mouth = document.getElementById('mouth');
+  const halo = document.getElementById('halo');
+  const status = document.getElementById('status');
+  const input = document.getElementById('input');
+  const send = document.getElementById('send');
+
+  // build the waveform mouth
+  const BARS = 11, bars = [];
+  for(let i=0;i<BARS;i++){const b=document.createElement('div');b.className='bar';mouth.appendChild(b);bars.push(b);}
+
+  let raf=null;
+  function startMouth(){
+    cancelAnimationFrame(raf);
+    (function loop(){
+      bars.forEach((b,i)=>{
+        const center = 1 - Math.abs(i-(BARS-1)/2)/((BARS-1)/2); // taller in the middle
+        b.style.height = (6 + Math.random()*26*center) + 'px';
+      });
+      raf = requestAnimationFrame(()=>setTimeout(loop,80));
+    })();
+  }
+  function stopMouth(){cancelAnimationFrame(raf); bars.forEach(b=>b.style.height='6px');}
+
+  function setState(s){
+    if(s==='speaking'){halo.classList.add('speaking'); status.innerHTML='<b>Speaking…</b>'; startMouth();}
+    else if(s==='thinking'){status.textContent='Thinking…';}
+    else {halo.classList.remove('speaking'); status.textContent='Ready'; stopMouth();}
+  }
+
+  function speak(text){
+    setState('speaking');
+    if('speechSynthesis' in window){
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.rate=1; u.pitch=1;
+      u.onend = ()=>setState('idle');
+      u.onerror = ()=>setState('idle');
+      window.speechSynthesis.speak(u);
+    } else {
+      // no speech engine: animate for a plausible duration
+      setTimeout(()=>setState('idle'), Math.min(6000, 500 + text.length*55));
+    }
+  }
+
+  // ---- The "brain". Swap this for a real LLM call (see note below). ----
+  function getReply(text){
+    const t = text.toLowerCase();
+    if(/joke/.test(t)) return "Why did the neural network go to therapy? It had too many deep issues.";
+    if(/name|who are you|introduce/.test(t)) return "I'm Nova, a demo AI avatar. I turn your text into speech and move as I talk.";
+    if(/what can you|do|help/.test(t)) return "I can speak anything you type and animate along with it. Wire me to a language model and I'll hold a real conversation.";
+    if(/hello|hi|hey/.test(t)) return "Hey there. Type a message and I'll say it out loud.";
+    return "You said: " + text + ". Connect me to a language model to make this smarter.";
+  }
+  // To make it truly conversational, replace getReply with a fetch to your endpoint:
+  //   async function getReply(text){
+  //     const r = await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});
+  //     return (await r.json()).reply;
+  //   }
+
+  async function handleSend(){
+    const text = input.value.trim();
+    if(!text) return;
+    input.value=''; send.disabled=true; setState('thinking');
+    try{
+      const reply = await getReply(text);
+      speak(reply);
+    }finally{ send.disabled=false; input.focus(); }
+  }
+
+  send.addEventListener('click', handleSend);
+  input.addEventListener('keydown', e=>{ if(e.key==='Enter') handleSend(); });
+  document.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>{input.value=c.textContent;handleSend();}));
+  // Some browsers need a load tick before voices are ready
+  if('speechSynthesis' in window){window.speechSynthesis.getVoices();}
+  input.focus();
+</script>
+</body>
+</html>
