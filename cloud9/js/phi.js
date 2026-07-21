@@ -170,7 +170,9 @@ CORTEX.phi = (function () {
       '<div class="scratch-col"><div class="preview-head">Detected (' + pv.spans.length + ' spans)</div>' +
         '<pre class="preview-body">' + pv.html + '</pre></div>' +
       '<div class="scratch-col"><div class="preview-head">What Cortex stores / displays</div>' +
-        '<pre class="preview-body">' + esc(redact.redactText(text).text) + '</pre></div>' +
+        '<pre class="preview-body">' + redact.redactedHTML(text).html + '</pre>' +
+        '<div class="muted small">Only the identifier is replaced — surrounding words are passed ' +
+        'through unchanged.</div></div>' +
       '<div class="muted small">' + (pv.spans.length
         ? Object.keys(counts).map(function (t) { return esc(t) + ' ×' + counts[t]; }).join(' · ')
         : 'No direct identifiers matched.') + '</div>';
